@@ -1,0 +1,580 @@
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>Farmend Distribution Center</title>
+<script src="js/jquery-1.11.3.min.js"></script>
+<script src="js/jquery-listify.js"></script>
+<link href="jquery.mobile-1.4.5/jquery.mobile-1.4.5.min.css" rel="stylesheet" type="text/css" />
+<script src="jquery.mobile-1.4.5/jquery.mobile-1.4.5.min.js"></script>
+
+<script type="text/javascript">
+    //Constants
+    var mainurl = 'http://eapmc.com/farmend/index.php/maincentre/';
+    var distributionCenterConstant = {
+        selectedDistributionPoint : 0,
+        selectedDistributionPoint2 : 0,
+        selectedConsumerOrderID : ""
+    };
+
+
+    //Calling backend
+    $.getJSON(mainurl + "getDistributionCenters", function(data){
+        for (var i = 0; i < data.length; i++) {
+            $('.selectDistributionPoint').append('<option value='+data[i].distributionCenterNo+'>'+data[i].distributionCenterName+'</option>');
+        }
+    });
+    
+    $(document).ready(function(){
+        /*$.getJSON(mainurl + "getDistributionCenterCustomers", function(data){
+            $("#customersNearDistributionCenter").listify({
+                listifyArrayObject:data
+            });
+        });*/
+        $("#customersNearDistributionCenter2").listify();
+        $("#customersNearDistributionCenter").listify();
+        $("#consumersViewProducts").listify();
+    });
+
+    var selectCustomersFromDistributionPoint = function(self) {
+        distributionCenterConstant.selectedDistributionPoint = self.value;
+        $.getJSON(mainurl + "getDistributionCenterCustomers/"+self.value, function(data){
+            $("#customersNearDistributionCenter").listify({
+                listifyArrayObject:data
+            });
+        });
+    }
+
+
+    var selectCustomersFromDistributionPoint2 = function(self) {
+        distributionCenterConstant.selectedDistributionPoint2 = self.value;
+        $.getJSON(mainurl + "getDistributionCenterCustomers/"+self.value, function(data){
+
+            $("#customersNearDistributionCenter2").listify({
+                listifyArrayObject:data,
+                success:function() {
+                    i=0;
+                    this.allElements.each(function() {
+                        $(this).find('.mobilenumber').attr('name','consumer['+i+'][mobilenumber]');
+                        $(this).find('.consumerorderid').attr('name','consumer['+i+'][consumerorderid]');
+                        $(this).find('.distributionid').attr('name','consumer['+i+'][distributionid]').val(distributionCenterConstant.selectedDistributionPoint2);
+                        $(this).find('.pickup').attr('name','consumer['+i+'][pickup]').attr('onchange','productPackedStatusValuing(this)');
+                        i++;
+                    });
+                }
+            });
+            
+        });
+    }
+    var viewConsumerBuyingDetails = function(self) {
+        window.location.href = '#view_products';
+        distributionCenterConstant.selectedConsumerOrderID = $(self).data('consumerOrderID');
+        $.getJSON(mainurl + "getDistributionCenterCustomerOrderDetails/"+$(self).data('consumerOrderID'), function(data){
+            
+            if(parseInt(data[0].OrderProcessed))
+                $("#consumersProductData").attr('disabled',true);
+            
+
+            $("#consumersViewProducts").listify({
+                listifyArrayObject:data,
+                success:function() {
+                    i=0;
+                    this.allElements.each(function() {
+                        $(this).find('.productid').attr('name','product['+i+'][productid]');
+                        $(this).find('.varientid').attr('name','product['+i+'][varientid]');
+                        $(this).find('.distributionid').attr('name','product['+i+'][distributionid]').val(distributionCenterConstant.selectedDistributionPoint);
+                        $(this).find('.productname').attr('name','product['+i+'][name]');
+                        $(this).find('.productquantity').attr('name','product['+i+'][quantity]');
+                        $(this).find('.productpackedstatus').attr('name','product['+i+'][packedstatus]').attr('onchange','productPackedStatusValuing(this)');
+                        $(this).find('.productpackedquantity').attr('name','product['+i+'][packedquantity]');
+                        i++;
+                    });
+                }
+            });
+        });
+    }
+    var viewConsumerBuyingDetailsPrint = function(self) {
+        window.location.href = '#view_products';
+        distributionCenterConstant.selectedConsumerOrderID = $(self).data('consumerOrderID');
+        $.getJSON(mainurl + "getDistributionCenterCustomerOrderDetails/"+$(self).data('consumerOrderID'), function(data){
+            $("#consumersViewProducts").listify({
+                listifyArrayObject:data,
+                success:function() {
+                    i=0;
+                    this.allElements.each(function() {
+                        $(this).find('.productid').attr('name','product['+i+'][productid]');
+                        $(this).find('.varientid').attr('name','product['+i+'][varientid]');
+                        $(this).find('.distributionid').attr('name','product['+i+'][distributionid]').val(distributionCenterConstant.selectedDistributionPoint);
+                        $(this).find('.productname').attr('name','product['+i+'][name]');
+                        $(this).find('.productquantity').attr('name','product['+i+'][quantity]');
+                        $(this).find('.productpackedstatus').attr('name','product['+i+'][packedstatus]').attr('onchange','productPackedStatusValuing(this)');
+                        $(this).find('.productpackedquantity').attr('name','product['+i+'][packedquantity]');
+                        i++;
+                    });
+                    setTimeout(function(){
+                        window.print();
+                        window.location.href = '#view_product';
+                    }, 3000);
+                }
+            });
+        });
+    }
+    var productPackedStatusValuing = function(self) {
+        self.value = self.checked + "";
+    }
+    var sendConsumerProductsData = function() {
+        event.preventDefault();
+
+        formPostArray = $('#consumerViewProductsRoot').serializeArray();
+        formPostArray.push({
+            'name' : 'consumerorderid',
+            'value': distributionCenterConstant.selectedConsumerOrderID
+        });
+
+        formsubmitajax({
+            url : mainurl + 'sendConsumerProductsData',
+            data :  formPostArray,
+            info : "of the data has successfully initiated",
+            errorElement : "consumerViewProductsRootError",
+            resetFormID : "consumerViewProductsRoot"
+        });
+    }
+    var transportingSubmission = function() {
+        event.preventDefault();
+
+        formPostArray = $('#consumerViewProductsTransportation').serializeArray();
+        formsubmitajax({
+            url : mainurl + 'setConsumerProductsTransportationStatus',
+            data :  formPostArray,
+            info : "of the transported data is successfully initiated",
+            errorElement : "consumerViewProductsTransportationError",
+            resetFormID : "consumerViewProductsTransportation"
+        });
+    }
+    var formsubmitajax = function(formobject) {
+        $.ajax({
+            url: formobject.url,
+            method: "POST",
+            data: formobject.data,
+            success:function(data) {
+                alert(data.result);
+                $("#"+formobject.errorElement).html(data.result).css("color","red");
+                info = formobject.info;
+                if(data.result.toLowerCase().indexOf(info.toLowerCase()) > -1){
+                    $("#"+formobject.errorElement).html(data.result).css("color","green");
+                    document.getElementById(formobject.resetFormID).reset();
+                }
+                window.location.href = "#"+formobject.errorElement;
+            }
+        });
+    }
+</script>
+</head>
+
+<body>
+<!-- Login page starts -->
+<div data-role="page" id="login">
+	<div data-role="header" align="center"  data-theme="b">
+    	Please login to your account
+    </div>
+    <div data-role="content">
+    	<form id="loginForm" action="" method="post">
+        	<label>User Name</label>
+            <input type="text" name="user" id="user"  />
+            <label>Password</label>
+            <input type="password" name="passwords" id="password"  />
+            <label></label>
+            <input type="button" value="login" onClick="handleLogin();" />
+        </form>
+    </div>
+    
+    <div data-role="footer" align="center"  data-theme="b">
+    	 <center> Powered by Adisu </center>
+    </div>
+</div>
+<script>
+
+function handleLogin() {
+	
+	var form = $("#loginForm");    
+	var user = $("#user", form).val();
+	var passwords = $("#password", form).val();
+	
+	
+	if( user == "" )
+   {
+ 	 	document.getElementById("loginForm");
+	 	alert("Enter Valid UserName");
+    	return false;
+   }
+	if( passwords == "" )
+   {
+   		document.getElementById("loginForm");
+   		alert("Enter Valid Password");
+     	return false;
+   }
+   
+		$.ajax({
+    url: "http://eapmc.com/mobile_app/main_center/authintication.php",
+    type: 'POST',
+    data: {user: user, passwords :passwords},
+    dataType: 'json',
+    success: function(result) {
+	if(result.res == 1) {
+			
+			//alert(result.res);
+			
+			location.href = '#home_page';
+        }
+        else
+        {
+            alert(false);
+        }
+    }
+});
+}
+  
+  </script>
+<!-- login page ends -->
+
+
+<!-- home page -->
+	<div data-role="page" id="home_page">
+    	<div data-role="header" data-theme="b" class="ui-grid-a" align="center">
+        	<div class="ui-block-a">
+            	Welcome User name
+            </div>
+            <div class="ui-block-b" align="center">
+            	<a href="#"><img src="images/home.png"></a>
+            </div>
+        </div>
+        <div data-role="content">
+        	<ul data-role="listview">
+            	<li><a href="#order_date">Receive Farmer Stock</a></li>
+               <!-- <li><a href="#farmer_stock">Receive Farmer Stock</a></li> -->
+                <li><a href="#view_product">Package Stocks</a></li>
+                <li><a href="#transport">Transport Stocks</a></li>
+            </ul>
+        </div>
+        <div data-role="footer" align="center"  data-theme="b">
+    	 <center> Powered by Adisu </center>
+    </div>
+    </div>
+<!-- home page ends -->
+
+<!-- order date starts -->
+	<div data-role="page" id="order_date">
+    	<div data-role="header" data-theme="b" class="ui-grid-a" align="center">
+        	<div class="ui-block-a">
+            	Welcome User name
+            </div>
+            <div class="ui-block-b" align="center">
+            	<a href="#home_page"><img src="images/home.png"></a>
+            </div>
+        </div>
+        <div data-role="content">
+        
+        	<div class="ui-grid-d" >
+            	
+                <div class="ui-block-b" style="overflow:hidden;"> 
+                	<strong>Enter Order Date</strong>
+                </div>
+              
+               <form id="qtyform" method="post">
+                <div class="ui-block-d" style="overflow:hidden;">
+                	
+                   
+                    <label></label>
+                    		<input type="text" name="date" placeholder="dd-mm-yy"  id="date"/><br /><br />
+                    
+                </div>
+                <div class="ui-block-d" style="overflow:hidden;">
+                	
+                    <label></label>
+                    <input type="button" value="submit" onClick="orderdate();" />
+                   
+                </div>
+                 </form>
+            </div>
+        </div>
+        <div data-role="footer" data-theme="b">
+       <center> Powered by Adisu </center>
+        </div>
+    </div>
+  
+  <script>
+  
+  function orderdate() {
+		//alert("hii");
+		var odate = document.getElementById('date').value;
+				
+	//alert(odate);
+		$.ajax({
+    url: "http://eapmc.com/mobile_app/main_center/order.php",
+	// url: "order.php",
+    type: 'POST',
+    data: {odate: odate},
+    dataType: 'json',
+    success: function(result1) {	
+	
+		var textcontent = ""; 
+		
+		var fname,pname,qty,farmid;
+		
+		textcontent = "<form id='osub' method='post'><table>";
+		
+		for(var i=0;i<result1.length;i++){
+			
+			fname = result1[i]['customerFname'];
+			pname = result1[i]['productName'];
+			qty = result1[i]['ord_qty'];
+			farmid = result1[i]['farmend_farm_order_id'];
+			
+			textcontent +="<tr class='ui-grid-d'><td class='ui-block-a' style='overflow:hidden;'>"+fname;
+			textcontent +="</td><td class='ui-block-b'>"+pname; 
+			textcontent +="</td><td class='ui-block-c'>"+qty;
+			textcontent +="</td><td class='ui-block-d'><input type='number' name="+farmid+" id="+farmid+"></td>";
+			textcontent +="<td class='ui-block-e'><input type='button' value='submit' onClick='handlesubmit("+farmid+");'></tr>";
+			
+		
+		}
+		textcontent += "</table></form>";
+		$('#textdiv').html(textcontent);
+		
+			
+			location.href = '#farmer_stock';   
+    }
+});
+}
+  
+  </script>
+<!-- order date ends -->
+
+<!-- receive farmer stocks starts -->
+	<div data-role="page" id="farmer_stock">
+    	<div data-role="header" data-theme="b" class="ui-grid-a" align="center">
+        	<div class="ui-block-a">
+            	Welcome User name
+            </div>
+            <div class="ui-block-b" align="center">
+            	<a href="#home_page"><img src="images/home.png"></a>
+            </div>
+        </div>
+        <div data-role="content">
+        
+		
+		
+        	<div class="ui-grid-d" >
+            	<div class="ui-block-a" style="overflow:hidden;">
+                	<strong>Farmer Name</strong>
+                </div>
+                <div class="ui-block-b" style="overflow:hidden;">
+                	<strong>Commodity</strong>
+                </div>
+                <div class="ui-block-c" style="overflow:hidden;">
+                	<strong>Ordered Qty</strong>
+                </div>
+                <div class="ui-block-d" style="overflow:hidden;">
+                	<strong>Received Qty</strong>
+                </div>
+                <div class="ui-block-e" style="overflow:hidden;">
+                	<strong >Submit </strong> 
+                </div>
+                
+           
+            </div>
+			<div id="textdiv"></div>
+			
+            </div>
+            
+        <div data-role="footer" data-theme="b">
+       <center> Powered by Adisu </center>
+        </div>
+    </div>
+    
+ <script> 
+ 
+	function handlesubmit(val)
+	{
+				var rqty = document.getElementById(val).value;
+	
+			
+			$.ajax({
+   url: "http://eapmc.com/mobile_app/main_center/receivedqty.php",
+   // url: "receivedqty.php",
+    type: 'POST',
+    data: {rqty : rqty, farmend_farm : val},
+    dataType: 'json',
+    success: function(msg) {
+        if(msg.res == 1) {
+			
+			
+			//alert(true);
+			location.href = '#home_page';
+
+        }
+        else
+        {
+            alert(false);
+        }
+    }
+});
+	}
+</script>	
+<!-- receive farmer stocks ends -->
+
+
+<!-- distribution point wise data -->
+	<div data-role="page" id="view_product">
+    	<div data-role="header" data-theme="b" class="ui-grid-a" align="center">
+        	<div class="ui-block-a">
+            	Welcome User name
+            </div>
+            <div class="ui-block-b" align="center">
+            	<a href="#home_page"><img src="images/home.png"></a>
+            </div>
+        </div>
+        <div date-role="content">
+        	<div>
+            	<label></label>                
+                <select class="selectDistributionPoint" onchange="selectCustomersFromDistributionPoint(this)">
+                	<option>Select Distribution Point</option>
+                </select>
+            </div>
+            <h2>Distribution centre Name</h2>
+            <div class="ui-grid-b">
+            	<div class="ui-block-a" align="center">
+                	<strong>Customer Name</strong>
+                </div>
+                <div class="ui-block-b" align="center">
+                	<strong>Print</strong>
+                </div>
+                <div class="ui-block-c" align="center">
+                	<strong>List</strong>
+                </div><br><br>
+            </div>
+            <div class="ui-grid-b" id='customersNearDistributionCenter'>
+                <div class="ui-block-a" data-value-exist="true" data-key="consumerMobileNumber">
+                </div>
+                <div class="ui-block-b">
+                	<form>
+                    	<label></label>
+                        <input type="button" value="Print">
+                    </form>
+                </div>
+                <div class="ui-block-c">
+                    <input type="button" value="View" data-value-exist="true" data-key="consumerOrderID" onclick="viewConsumerBuyingDetails(this)"> 
+                </div>
+            </div>
+        </div>
+        <div data-role="footer" align="center"  data-theme="b">
+        	Powered by Adisu
+        </div>	
+    </div>
+<!-- distribution point wise data ends -->
+
+<!-- view products page of the customer -->
+	<div data-role="page" id="view_products">
+    	<div data-role="header" data-theme="b" class="ui-grid-a" align="center">
+        	<div class="ui-block-a">
+            	Welcome User name
+            </div>
+            <div class="ui-block-b" align="center">
+            	<a href="#home_page"><img src="images/home.png"></a>
+            </div>
+        </div>
+        <div date-role="content">
+        <form  id="consumerViewProductsRoot">
+            <div id="consumerViewProductsRootError"></div>
+        	<h2>Consumer Name</h2>
+            <div class="ui-grid-d">
+            	<div class="ui-block-a">
+                	<strong>Product</strong>
+                </div>
+                <div class="ui-block-b">
+                	<strong>Qty</strong>
+                </div>
+                <div class="ui-block-c">
+                	<strong>Packed</strong>
+                </div>
+                <div class="ui-block-c">
+                    <strong>Packed Quantity</strong>
+                </div>
+                <div class="ui-block-d">
+                	<strong>Unavailable</strong>
+                </div>
+            </div>
+            <div class="ui-grid-d" id="consumersViewProducts">
+                <div class="ui-block-a" data-value-exist="true" data-key="ProductName">
+                </div>
+                <div class="ui-block-b" data-value-exist="true" data-key="ProductQuantity">
+                </div>
+                <div class="ui-block-c">
+                    <input type="hidden" class="productid" data-value-exist="true" data-key="ProductID">
+                    <input type="hidden" class="varientid" data-value-exist="true" data-key="VarientID">
+                    <input type="hidden" class="distributionid">
+                    <input type="hidden" class="productname" data-value-exist="true" data-key="ProductName">
+                    <input type="hidden" class="productquantity" data-value-exist="true" data-key="ProductQuantity">
+                	<input type="checkbox" class='productpackedstatus' data-value-exist="true" data-key="ProductAvailableBooleanStatus">
+                </div>
+                <div class="ui-block-d">
+                    <input type="text" class="productpackedquantity" placeholder='Packed Quantity'>
+                </div>
+                <div class="ui-block-e" data-value-exist="true" data-key="ProductAvailableStatus">
+                </div>
+            </div>
+            <input type="button" value="Complete Packaging & Print" onclick="sendConsumerProductsData()" id="consumersProductData">
+        </form>
+        </div>
+        <div data-role="footer" align="center"  data-theme="b">
+        	Powered by Adisu
+        </div>
+    </div>
+<!-- view products page of the customer ends -->
+
+<!-- Send transport -->
+	<div data-role="page" id="transport">
+    	<div data-role="header" data-theme="b" class="ui-grid-a" align="center">
+        	<div class="ui-block-a">
+            	Welcome User name
+            </div>
+            <div class="ui-block-b" align="center">
+            	<a href="#home_page"><img src="images/home.png"></a>
+            </div>
+        </div>
+        <div date-role="content">
+        	<div>
+            	<select class="selectDistributionPoint" onchange="selectCustomersFromDistributionPoint2(this)">
+                	<option>Select Distribution Point</option>
+                </select>
+            </div><br><br>
+            <div id="consumerViewProductsTransportationError"></div>
+            <div class="ui-grid-a">
+            	<div class="ui-block-a">
+                	<strong>Completed</strong>
+                </div>
+                <div class="ui-block-b">
+                	<strong>Customer No</strong>
+                </div><br>
+            </div>
+            <form id="consumerViewProductsTransportation">
+                <div class="ui-grid-a" id="customersNearDistributionCenter2">
+                    <div class="ui-block-a">
+                        <input type="hidden" class="distributionid">
+                        <input type="hidden" class="mobilenumber" data-value-exist="true" data-key="consumerMobileNumber">
+                        <input type="hidden" class="consumerorderid" data-value-exist="true" data-key="consumerOrderID">
+                    	<input type="checkbox" class="pickup">
+                    </div>
+                    <div class="ui-block-b" data-value-exist="true" data-key="consumerMobileNumber">
+                    	9845201023
+                    </div><br><br>
+                </div>
+            </form>
+            <input type="button" value="Completed" onclick="transportingSubmission()">
+        </div>
+        <div data-role="footer" align="center"  data-theme="b">
+        	Powered by Adisu
+        </div>
+    </div>
+<!-- Send transport -->
+</body>
+</html>
