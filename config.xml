@@ -6,11 +6,11 @@
     <name>Farmend - Main Centre</name>
 
     <description>
-        Eapmc
+        Eapmc - Main Centre
     </description>
 
     <author href="http://eapmc.com" email="sunilkumar@eapmc.com">
-        Eapmc
+        Eapmc - Main Centre
     </author>
     <access origin="http://eapmc.com" subdomains="true" />
     <access origin="https://*.googleapis.com" subdomains="true" />
